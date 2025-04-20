@@ -5,3 +5,8 @@ regex.md
 index.dts
 *.code-workspace
 
+
+.idea
+.history
+
+
