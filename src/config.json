@@ -1,0 +1,14 @@
+[
+    {
+        "name": "_TOKEN",
+        "type": "text",
+        "label": "pushplus 的用户 Token",
+        "help": "可以在 pushplus 的微信公众号中获取，不使用 pushplus 则留空"
+    },
+    {
+        "label": "显示控制台(需要悬浮窗权限)",
+        "type": "checkbox",
+        "name": "_SHOW_CONSOLE",
+        "default": true
+    }
+]
