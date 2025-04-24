@@ -1,6 +1,5 @@
 auto.waitFor();
-setScreenMetrics(1267, 2400);
-
+auto.setMode("fast");
 // 创建日志收集器
 var logCollector = {
     logs: [],
@@ -18,9 +17,12 @@ var logCollector = {
     
     // 上传日志到服务器
     uploadLogs: function() {
-        this.log("准备上传日志...");
-        
+        console.log("准备上传日志...");
         try {
+            if(this.logs.length == 0) {
+                console.log("没有日志需要上传");
+                return;
+            }
             // 准备要发送的日志数据
             let logData = {
                 logs: this.logs
@@ -33,100 +35,264 @@ var logCollector = {
             
             // 检查响应
             if (response.statusCode >= 200 && response.statusCode < 300) {
-                this.log("日志上传成功！状态码: " + response.statusCode);
+                console.log("日志上传成功！状态码: " + response.statusCode);
                 // 清空已上传的日志
                 this.logs = [];
             } else {
-                this.log("日志上传失败！状态码: " + response.statusCode);
-                this.log("响应内容: " + response.body.string());
+                console.log("日志上传失败！状态码: " + response.statusCode);
+                console.log("响应内容: " + response.body.string());
             }
         } catch (e) {
-            this.log("日志上传出错: " + e);
+            console.log("日志上传出错: " + e);
         }
     }
 };
-
-// 启动应用并收集日志
-logCollector.log("脚本开始执行");
-logCollector.log("设置屏幕尺寸: 1267x2400");
-sleep(2000);
-
-logCollector.log("启动淘宝应用");
+logCollector.log("开始运行");
+setScreenMetrics(device.width,device.height);
+logCollector.log("分辨率: " + device.width + "x" + device.height);
+const TaskSign = '去签到';
+const TaskAnswer = '去答题';
+const TaskView1 = '去完成';
+const TaskView2 = '去浏览';
+const TaskCollect = '去领取';
+const TaskWalk = '去逛逛';
 app.launchApp("淘宝");
-sleep(2000);
-
+randomSleep() 
 try {
-    logCollector.log("开始查找芭芭农场控件");
-    let obj = desc('芭芭农场').findOne(10000);
-    
-    if (obj) {
-        let bounds = obj.bounds();
-        logCollector.log("找到芭芭农场控件: " + JSON.stringify(bounds));
-        
-        // 计算中心点坐标
+    let bbnc = desc('芭芭农场').findOne(3000);  
+    if (bbnc) {
+        let bounds = bbnc.bounds();
         var x = bounds.centerX();
         var y = bounds.centerY();
-        logCollector.log("中心坐标: " + x + ", " + y);
-        
-        // 点击控件
         click(x, y);
-        logCollector.log("已点击芭芭农场控件");
     } else {
-        logCollector.log("未找到芭芭农场控件");
+        logCollector.log("未找到芭芭农场任务");
+    }
+    randomSleep() 
+    clickCollectButton();
+    randomSleep();
+    let tasks = getAllTask();
+    logCollector.log("任务列表: " + JSON.stringify(tasks));
+    for (let i = 0; i < tasks.length; i++) {
+        if (tasks[i].taskType != TaskView1 || tasks[i].taskType != TaskView2) {
+            continue;
+        }
+        logCollector.log("==========执行任务: " + tasks[i].taskType, " 序号：" + (i+1));
+        switch (tasks[i].taskType) {
+            case TaskSign:
+                signTask(tasks[i].taskBotton);
+                break;
+            case TaskAnswer:
+                if (!answerTask(tasks[i].taskBotton, 'A.')) {
+                    randomSleep();
+                    clickCollectButton();
+                    randomSleep();
+                    answerTask(tasks[i].taskBotton, 'B.')
+                }
+                break;
+            case TaskView1:
+                viewTask(tasks[i].taskBotton);
+                break;
+            case TaskView2:
+                viewTask(tasks[i].taskBotton);
+                break;
+            case TaskCollect:
+                collectTask(tasks[i].taskBotton);
+                break;
+            case TaskWalk:
+                walkTask(tasks[i].taskBotton);
+                break;
+        }
+        logCollector.log("==========完成任务: " + tasks[i].taskType);
+        // 随机休眠1-2秒
+        randomSleep();
     }
 } catch (e) {
-    logCollector.log("查找芭芭农场时出错: " + e);
+    logCollector.log("芭芭农场任务出错: " + e);
 }
-
-sleep(3000);
-
-// 收集所有控件信息
-collectAllElementsInfo();
-
 // 上传收集的日志
 logCollector.uploadLogs();
 
-// 收集当前页面所有控件的函数
-function collectAllElementsInfo() {
-    logCollector.log("===== 开始收集当前页面所有控件 =====");
-    
-    try {
-        // 使用控件选择器获取所有控件
-        var allElements = selector().find();
-        logCollector.log("总共找到 " + allElements.length + " 个控件");
-        
-        // 遍历并记录每个控件的信息
-        for(let i = 0; i < allElements.length && i < 50; i++) { // 限制为最多50个，防止日志过大
-            let element = allElements[i];
-            let elementInfo = "-------- 控件 " + i + " --------\n";
-            
-            // 记录基本属性
-            if(element.text()) elementInfo += "文本: " + element.text() + "\n";
-            if(element.desc()) elementInfo += "描述: " + element.desc() + "\n";
-            if(element.id()) elementInfo += "ID: " + element.id() + "\n";
-            if(element.className()) elementInfo += "类名: " + element.className() + "\n";
-            
-            // 记录位置信息
-            try {
-                let b = element.bounds();
-                elementInfo += "位置: [" + b.left + ", " + b.top + ", " + b.right + ", " + b.bottom + "]\n";
-                elementInfo += "中心点: (" + b.centerX() + ", " + b.centerY() + ")\n";
-            } catch (e) {
-                elementInfo += "获取位置出错: " + e + "\n";
-            }
-            
-            // 记录是否可点击、是否可滚动等状态
-            elementInfo += "可点击: " + element.clickable() + "\n";
-            elementInfo += "可滚动: " + element.scrollable() + "\n";
-            elementInfo += "是否选中: " + element.selected() + "\n";
-            elementInfo += "是否可见: " + element.visibleToUser() + "\n";
-            
-            // 添加到日志收集器
-            logCollector.log(elementInfo);
-        }
-    } catch (e) {
-        logCollector.log("收集控件信息时出错: " + e);
+function randomSleep() {
+    sleep(random(1000, 2000));
+}
+
+// 逛一逛
+function walkTask(taskBotton) {
+    logCollector.log("向上滑动");
+    swipe(parseInt(device.width * 1/3) + random(10,100), parseInt(device.height * 4/7)+ random(10,100), parseInt(device.width*2/3) + random(50,200), parseInt(device.height* 1/4) + random(100,300), 1000);
+    randomSleep();
+    clickBotton(taskBotton);
+    logCollector.log("跳转逛一逛页面");
+    sleep(3000);
+    logCollector.log("返回");
+    back(); 
+    randomSleep();
+    back();
+    logCollector.log("返回集肥料页面");
+    clickCollectButton();
+    randomSleep();
+}
+// 点击按钮
+function clickBotton(taskBotton) {
+    // 打印按钮详细信息
+    logCollector.log("点击按钮: " + taskBotton.text());
+    let b = taskBotton.bounds();
+    logCollector.log("按钮位置: ["  + b.left + ", " + b.top + ", " + b.right + ", " + b.bottom + "]");
+    logCollector.log("按钮类型: " + taskBotton.className());
+    logCollector.log("按钮描述: " + taskBotton.desc());
+    if(taskBotton.className() == "android.widget.Button") {
+        taskBotton.click();
+    } else {
+        let bounds = taskBotton.bounds();
+        var x = bounds.centerX();
+        var y = bounds.centerY();
+        click(x, y);
     }
-    
-    logCollector.log("===== 结束收集当前页面所有控件 =====");
+}
+
+// 答题
+function answerTask(taskBotton, answer) {
+    clickBotton(taskBotton);
+    randomSleep();
+    let answerBotton = textContains(answer).findOne(1000);
+    if (answerBotton) {
+        clickBotton(answerBotton);
+        randomSleep();
+        let nextBotton = textContains('领取奖励').findOne(2000);
+        if (nextBotton) {
+            clickBotton(nextBotton);
+            // 回到集肥料的页面继续做其它任务
+            randomSleep();
+            clickCollectButton();
+            randomSleep();
+            return true;
+        } else {
+            logCollector.log("未找到领取奖励按钮"); 
+            closebtn = text('关闭').findOne(2000);
+            if (closebtn) {
+                clickBotton(closebtn);
+                // 回到集肥料的页面继续做答题
+                randomSleep();
+                clickCollectButton();
+                randomSleep();
+                return false;
+            } else {
+                logCollector.log("未找到关闭按钮");
+                return false;
+            }
+        }
+    } else {
+        logCollector.log("未找到答题按钮");
+        return false;
+    }
+}
+
+// 点击集肥料
+function clickCollectButton() {
+    let cbtn = text('集肥料').findOne(2000);
+    if (cbtn) {
+        clickBotton(cbtn);
+    } else {
+        logCollector.log("未找到集肥料");
+    }
+}
+
+// 浏览任务
+function viewTask() {
+    clickBotton(taskBotton);
+    randomSleep();
+    logCollector.log("向上滑动");
+    swipe(parseInt(device.width * 1/3) + random(10,100), parseInt(device.height * 3/7)+ random(10,100), parseInt(device.width*2/3) + random(50,200), parseInt(device.height* 1/4) + random(100,300), 1000);
+    sleep(3000+random(1000,2000));
+    logCollector.log("向下滑动");
+    swipe(parseInt(parseInt(device.width*2/3) + random(50,200), parseInt(device.height* 1/4) + random(100,300),device.width * 1/3) + random(10,100), parseInt(device.height * 3/7)+ random(10,100), 1000);
+    sleep(3000+random(1000,2000));
+    swipe(parseInt(device.width * 1/3) + random(10,100), parseInt(device.height * 3/7)+ random(10,100), parseInt(device.width*2/3) + random(50,200), parseInt(device.height* 1/4) + random(100,300), 1000);
+    sleep(3000+random(1000,2000));
+    logCollector.log("向下滑动");
+    swipe(parseInt(parseInt(device.width*2/3) + random(50,200), parseInt(device.height* 1/4) + random(100,300),device.width * 1/3) + random(10,100), parseInt(device.height * 3/7)+ random(10,100), 1000);
+    sleep(3000+random(1000,2000));
+    swipe(parseInt(device.width * 1/3) + random(10,100), parseInt(device.height * 3/7)+ random(10,100), parseInt(device.width*2/3) + random(50,200), parseInt(device.height* 1/4) + random(100,300), 1000);
+    sleep(3000+random(1000,2000));
+    logCollector.log("返回");
+    back(); 
+    logCollector.log("返回集肥料页面");
+    clickCollectButton();
+    randomSleep();
+}
+
+// 签到任务
+function signTask(taskBotton) {
+    clickBotton(taskBotton);
+}
+
+// 领肥料
+function collectTask(taskBotton) {
+    // 向上滑动
+    logCollector.log("向上滑动");
+    swipe(parseInt(device.width * 1/3) + random(10,100), parseInt(device.height * 6/7)+ random(10,100), parseInt(device.width*2/3) + random(50,200), parseInt(device.height* 1/7) + random(100,300), 2500);
+    randomSleep();
+    clickBotton(taskBotton);
+}
+
+// 获取所有任务
+function getAllTask() {
+    let tasks = [];
+    // 签到任务
+    taskSignBotton = className("android.widget.Button").textContains(TaskSign).findOne(2000);
+    if (taskSignBotton) {
+        tasks.push({'taskType':TaskSign,'taskBotton':taskSignBotton});
+    }
+    // 答题任务
+    taskAnswerBotton = className("android.widget.Button").textContains(TaskAnswer).findOne(2000);
+    if (taskAnswerBotton) {
+        tasks.push({'taskType':TaskAnswer,'taskBotton':taskAnswerBotton});
+    }
+    // 浏览任务
+    taskViewBotton = className("android.widget.Button").textContains(TaskView1).find();
+    for (let i = 0; i < taskViewBotton.length; i++) {
+        parentObj = taskViewBotton[i].parent();
+        if (parentObj) {
+            textViewObj = parentObj.findOne(textContains('浏览15秒得'));
+            if (textViewObj) {
+                logCollector.log("浏览任务1: " + textViewObj.text());
+                tasks.push({'taskType':TaskView1,'taskBotton':taskViewBotton[i]});
+            }
+            textViewObj2 = parentObj.findOne(textContains('逛逛得'));
+            if (textViewObj2) {
+                logCollector.log("逛一逛任务: " + textViewObj2.text());
+                tasks.push({'taskType':TaskWalk,'taskBotton':taskViewBotton[i]});
+            }
+        }   
+    }
+    taskView2Botton = className("android.widget.Button").textContains(TaskView2).find();
+    for (let i = 0; i < taskView2Botton.length; i++) {
+        parentObj = taskView2Botton[i].parent();
+        if (parentObj) {
+            textView2Obj = parentObj.findOne(textContains('浏览15秒得'));
+            if (textView2Obj) {
+                logCollector.log("浏览任务2: " + textView2Obj.text());
+                tasks.push({'taskType':TaskView2,'taskBotton':taskView2Botton[i]});
+            }
+        }   
+    }
+    // 领肥料
+    taskCollectBotton = className("android.widget.Button").textContains(TaskCollect).findOne(2000);
+    if (taskCollectBotton) {
+        tasks.push({'taskType':TaskCollect,'taskBotton':taskCollectBotton});
+    }
+    // 去逛逛任务
+    taskWalkBotton = className("android.widget.Button").textContains(TaskWalk).find();
+    for (let i = 0; i < taskWalkBotton.length; i++) {
+        parentObj = taskWalkBotton[i].parent();
+        if (parentObj) {
+            textWalkObj = parentObj.findOne(textContains('逛逛得'));
+            if (textWalkObj) {
+                logCollector.log("逛一逛任务: " + textWalkObj.text());
+                tasks.push({'taskType':TaskWalk,'taskBotton':taskWalkBotton[i]});
+            }
+        }   
+    }
+    return tasks;
 }
